@@ -1,4 +1,6 @@
 mod utils;
+mod pixel;
+mod pixel_space;
 
 use wasm_bindgen::prelude::*;
 

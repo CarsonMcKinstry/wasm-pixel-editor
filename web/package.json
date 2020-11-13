@@ -32,5 +32,9 @@
     "webpack-cli": "^3.1.0",
     "webpack-dev-server": "^3.1.5",
     "copy-webpack-plugin": "^5.0.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.20",
+    "wasm-pixel-editor": "file:../pkg"
   }
 }
