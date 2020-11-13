@@ -10,8 +10,14 @@ pub struct PixelSpace {
 }
 
 impl PixelSpace {
-    fn get_index(&self, row: u32, col: u32) -> usize {
-        (row * self.width + col) as usize
+    fn get_index(&self, row: u32, col: u32) -> Option<usize> {
+
+        if row >= self.height || col >= self.width || row < 0 || col < 0 {
+            None
+        } else {
+            Some((row * self.width + col) as usize)
+        }
+
     }
     
 }
@@ -42,14 +48,75 @@ impl PixelSpace {
         }
     }
 
-    pub fn paint(&mut self, row: u32, col: u32, r: u8, g: u8, b: u8, a: u8) {
+    pub fn erase(&mut self, row: u32, col: u32) {
+        self.paint(row, col, Pixel {
+            r: 255,
+            g: 255,
+            b: 255,
+            a: 0
+        })
+    }
+
+    pub fn paint(&mut self, row: u32, col: u32, pixel: Pixel) {
         let idx = self.get_index(row, col);
 
-        self.pixels[idx] = Pixel {
-            r,
-            g,
-            b,
-            a
+        match idx {
+            Some(id) => {
+                self.pixels[id] = pixel;
+            },
+            None => {}
+        }
+    }
+
+    pub fn bucket(&mut self, row: u32, col: u32, pixel: Pixel ) {
+
+        self.paint(row, col, pixel);
+
+        let n = self.get_index(row - 1,     col);
+        let e = self.get_index(row    , col + 1);
+        let s = self.get_index(row + 1,     col);
+        let w = self.get_index(row    , col - 1);
+
+
+        match n {
+            Some(id) => {
+                let current_pix = self.pixels[id];
+                if current_pix != pixel {
+                    self.pixels[id] = pixel;
+                    self.bucket(row - 1, col, pixel);
+                }
+            }
+            None => {}
+        }
+        match e {
+            Some(id) => {
+                let current_pix = self.pixels[id];
+                if current_pix != pixel {
+                    self.pixels[id] = pixel;
+                    self.bucket(row, col + 1, pixel);
+                }
+            }
+            None => {}
+        }
+        match s {
+            Some(id) => {
+                let current_pix = self.pixels[id];
+                if current_pix != pixel {
+                    self.pixels[id] = pixel;
+                    self.bucket(row + 1, col, pixel);
+                }
+            }
+            None => {}
+        }
+        match w {
+            Some(id) => {
+                let current_pix = self.pixels[id];
+                if current_pix != pixel {
+                    self.pixels[id] = pixel;
+                    self.bucket(row, col - 1, pixel);
+                }
+            }
+            None => {}
         }
     }
 

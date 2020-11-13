@@ -1,3 +1,6 @@
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Pixel {
     pub r: u8,
@@ -18,5 +21,17 @@ impl Pixel {
     }
     pub fn set_a(&mut self, val: u8) {
         self.a = val;
+    }
+}
+
+#[wasm_bindgen]
+impl Pixel {
+    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Pixel {
+        Pixel {
+            r,
+            g,
+            b,
+            a
+        }
     }
 }
