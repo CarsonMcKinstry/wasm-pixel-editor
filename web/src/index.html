@@ -11,23 +11,13 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-      }
-
-      canvas {
-        border: 1px solid green
+        background-color: #aaaaaa;
       }
     </style>
   </head>
   <body>
-    <label>
-      <input type="checkbox" id="tool">
-      Bucket
-    </label>
-    <label>
-      <input type="checkbox" id="eraser">
-      Eraser
-    </label>
-    <canvas id="app"></canvas>
+    <canvas id="canvas"></canvas>
+    <div id="toolbox"></div>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
     <script src="./bootstrap.js"></script>
   </body>
