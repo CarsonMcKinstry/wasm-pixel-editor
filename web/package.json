@@ -38,6 +38,6 @@
   },
   "dependencies": {
     "lodash": "^4.17.20",
-    "wasm-pixel-editor": "file:../pkg"
+    "wasm-pixel-editor": "../pkg"
   }
 }
