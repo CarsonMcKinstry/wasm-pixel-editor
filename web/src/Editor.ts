@@ -9,6 +9,7 @@ interface EditorConfig {
   pixelHeight: number;
   pixelSize: number;
   tools: Tool[];
+  attachment: HTMLElement;
 }
 
 const defaultOptions: EditorConfig = {
@@ -16,11 +17,13 @@ const defaultOptions: EditorConfig = {
   pixelHeight: 48,
   pixelSize: 10,
   tools: [],
+  attachment: document.body,
 };
 
 export class Editor {
   canvas: Canvas;
   // toolbox
+  root: HTMLElement;
 
   pixelWidth: number;
   pixelHeight: number;
@@ -29,7 +32,7 @@ export class Editor {
   memory: WebAssembly.Memory;
 
   constructor(options: EditorConfig = defaultOptions) {
-    const { pixelWidth, pixelHeight, pixelSize } = options;
+    const { pixelWidth, pixelHeight, pixelSize, attachment } = options;
 
     this.pixelSpace = PixelSpace.new(pixelWidth, pixelHeight);
     this.memory = memory;
@@ -37,6 +40,8 @@ export class Editor {
     this.pixelWidth = pixelWidth;
     this.pixelHeight = pixelHeight;
     this.pixelSize = pixelSize;
+
+    this.root = attachment;
 
     this.canvas = new Canvas(
       {
@@ -49,6 +54,7 @@ export class Editor {
   }
 
   init() {
+    this.canvas.mount();
     this.canvas.init();
   }
 

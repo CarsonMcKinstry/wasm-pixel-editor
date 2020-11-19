@@ -3,6 +3,7 @@ import { isCanvas, isCanvasContext } from "./types";
 import { PixelSpace } from "wasm-pixel-editor";
 import { memory } from "wasm-pixel-editor/wasm_pixel_editor_bg.wasm";
 import { Editor } from "./Editor";
+import { clamp } from "lodash";
 
 interface CanvasOptions {
   width: number;
@@ -13,7 +14,7 @@ interface CanvasOptions {
 export class Canvas {
   width: number;
   height: number;
-  pixelSize: number;
+  _pixelSize: number;
 
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -25,22 +26,23 @@ export class Canvas {
 
   editor: Editor;
 
+  scale: number = 1;
+  origin: { x: number; y: number } = { x: 0, y: 0 };
+
   constructor({ width, height, pixelSize }: CanvasOptions, editor: Editor) {
     this.editor = editor;
     this.width = width;
     this.height = height;
-    this.pixelSize = pixelSize;
+    this._pixelSize = pixelSize;
 
-    const canvas = document.getElementById("canvas");
+    const canvas = document.createElement("canvas");
 
-    if (isCanvas(canvas)) {
-      this.canvas = canvas;
-    } else {
-      throw new Error('Unable to find canvas element with id = "canvas"');
-    }
+    this.canvas = canvas;
 
-    this.canvas.width = this.width * this.pixelSize;
-    this.canvas.height = this.height * this.pixelSize;
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+
+    this.origin = this.getOrigin();
 
     const ctx = this.canvas.getContext("2d");
 
@@ -51,8 +53,56 @@ export class Canvas {
     }
   }
 
+  get pixelSize() {
+    return this._pixelSize * this.scale;
+  }
+
   get gridPixelSize() {
     return this.pixelSize + 1;
+  }
+
+  getOrigin() {
+    return {
+      x: this.canvas.width / 2 - (this.width * this.pixelSize) / 2,
+      y: this.canvas.height / 2 - (this.height * this.pixelSize) / 2,
+    };
+  }
+
+  mount() {
+    this.editor.root.appendChild(this.canvas);
+
+    window.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+
+        const { deltaX, deltaY } = event;
+
+        if (Number.isInteger(deltaY)) {
+          this.origin.x -= deltaX;
+          this.origin.y -= deltaY;
+        } else {
+          if (deltaY < 0) {
+            this.scale = clamp((this.scale += 0.005 * deltaY), 0.5, 8);
+          } else {
+            this.scale = clamp((this.scale += 0.005 * deltaY), 0.5, 8);
+          }
+          this.origin = this.getOrigin();
+        }
+      },
+      { passive: false }
+    );
+
+    window.addEventListener("resize", () => {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+
+      this.origin = this.getOrigin();
+    });
+  }
+
+  unmount() {
+    this.editor.root.removeChild(this.canvas);
   }
 
   init() {
@@ -95,8 +145,8 @@ export class Canvas {
       this.ctx.beginPath();
       this.ctx.fillStyle = `rgba(${r},${g},${b},${a / 100})`;
       this.ctx.fillRect(
-        x * this.pixelSize,
-        y * this.pixelSize,
+        x * this.pixelSize + this.origin.x,
+        y * this.pixelSize + this.origin.y,
         this.pixelSize,
         this.pixelSize
       );
@@ -105,23 +155,22 @@ export class Canvas {
   }
 
   drawGrid() {
-    for (let j = 0; j < this.height; j++) {
-      for (let i = 0; i < this.width; i++) {
-        this.ctx.beginPath();
+    for (let i = 0; i < this.height * this.width; i++) {
+      const [x, y] = this.getPosition(i);
+      this.ctx.beginPath();
 
-        if ((j % 2 === 0 && i % 2 === 0) || (j % 2 !== 0 && i % 2 !== 0)) {
-          this.ctx.fillStyle = GridColor.DARK;
-        } else {
-          this.ctx.fillStyle = GridColor.LIGHT;
-        }
-        this.ctx.fillRect(
-          i * this.pixelSize,
-          j * this.pixelSize,
-          this.pixelSize,
-          this.pixelSize
-        );
-        this.ctx.closePath();
+      if ((y % 2 === 0 && x % 2 === 0) || (y % 2 !== 0 && x % 2 !== 0)) {
+        this.ctx.fillStyle = GridColor.DARK;
+      } else {
+        this.ctx.fillStyle = GridColor.LIGHT;
       }
+      this.ctx.fillRect(
+        x * this.pixelSize + this.origin.x,
+        y * this.pixelSize + this.origin.y,
+        this.pixelSize,
+        this.pixelSize
+      );
+      this.ctx.closePath();
     }
   }
 }
