@@ -2,13 +2,18 @@ import { getPosition } from "./../utils/getPosition";
 import { isCanvasContext } from "../types";
 import { Editor } from "../Editor";
 import { clamp } from "lodash";
-import { zoom, pan, handleWindowResize, test } from "./interactions";
+import { zoom, pan, handleWindowResize } from "./interactions";
 import { createGrid } from "../utils";
 
 interface CanvasOptions {
   width: number;
   height: number;
   pixelSize: number;
+}
+
+interface Point {
+  x: number;
+  y: number;
 }
 
 export class Canvas {
@@ -30,7 +35,7 @@ export class Canvas {
   editor: Editor;
 
   _scale: number = 1;
-  origin: { x: number; y: number } = { x: 0, y: 0 };
+  origin: Point = { x: 0, y: 0 };
 
   zoom = zoom(this);
   pan = pan(this);
@@ -82,7 +87,7 @@ export class Canvas {
   }
 
   set scale(value: number) {
-    this._scale = clamp(value, 0.01, 8);
+    this._scale = clamp(value, 0.5, 8);
   }
 
   get pixelSize() {
@@ -99,12 +104,20 @@ export class Canvas {
   getOrigin() {
     const canvasMidPoint = {
       x: (this.width * this.pixelSize) / 2,
-      y: (this.width * this.pixelSize) / 2,
+      y: (this.height * this.pixelSize) / 2,
     };
 
     return {
-      x: this.canvas.width / 2 - canvasMidPoint.x,
-      y: this.canvas.height / 2 - canvasMidPoint.y,
+      x: clamp(
+        this.canvas.width / 2 - canvasMidPoint.x,
+        -this.trueSize.width,
+        this.trueSize.width
+      ),
+      y: clamp(
+        this.canvas.height / 2 - canvasMidPoint.y,
+        -this.trueSize.height,
+        this.trueSize.height
+      ),
     };
   }
 
@@ -127,13 +140,12 @@ export class Canvas {
   mount() {
     this.editor.root.appendChild(this.canvas);
 
-    window.addEventListener("wheel", this.zoom, { passive: false });
-
-    window.addEventListener("wheel", this.pan, { passive: false });
-
-    window.addEventListener("resize", this.handleWindowResize);
-
-    this.canvas.addEventListener("click", test(this));
+    window.addEventListener("wheel", this.zoom, {
+      passive: false,
+    });
+    window.addEventListener("wheel", this.pan, {
+      passive: false,
+    });
   }
 
   unmount() {
@@ -141,7 +153,6 @@ export class Canvas {
 
     window.removeEventListener("wheel", this.zoom);
     window.removeEventListener("wheel", this.pan);
-    window.removeEventListener("resize", this.handleWindowResize);
   }
 
   renderLoop(currentDelta: number) {
@@ -160,10 +171,6 @@ export class Canvas {
   renderToCanvas() {
     this.ctx.drawImage(
       this.buffer,
-      0,
-      0,
-      this.width,
-      this.height,
       this.origin.x,
       this.origin.y,
       this.width * this.pixelSize,
