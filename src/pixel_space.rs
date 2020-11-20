@@ -2,18 +2,6 @@ use crate::pixel::Pixel;
 use std::option::Option;
 use wasm_bindgen::prelude::*;
 
-const GRID_PIXEL_DARK: Pixel = Pixel {
-    r: 204,
-    g: 204,
-    b: 204,
-    a: 255,
-};
-const GRID_PIXEL_LIGHT: Pixel = Pixel {
-    r: 255,
-    g: 255,
-    b: 255,
-    a: 255,
-};
 const TRANSPARENT_PIXEL: Pixel = Pixel {
     r: 0,
     g: 0,
@@ -26,7 +14,6 @@ pub struct PixelSpace {
     width: u32,
     height: u32,
     pixels: Vec<Pixel>,
-    grid: Vec<Pixel>,
 }
 
 impl PixelSpace {
@@ -53,19 +40,10 @@ impl PixelSpace {
         let height = height.unwrap_or(64);
 
         let pixels = (0..width * height).map(|_| TRANSPARENT_PIXEL).collect();
-
-        let grid = (0..width * height)
-            .map(|i| match get_position(i, width) {
-                [x, y] if x % 2 == 0 && y % 2 == 0 => GRID_PIXEL_DARK,
-                [x, y] if x % 2 != 0 && y % 2 != 0 => GRID_PIXEL_DARK,
-                [..] => GRID_PIXEL_LIGHT,
-            })
-            .collect();
         PixelSpace {
             width,
             height,
             pixels,
-            grid,
         }
     }
 
@@ -145,9 +123,5 @@ impl PixelSpace {
 
     pub fn pixels(&self) -> *const Pixel {
         self.pixels.as_ptr()
-    }
-
-    pub fn grid(&self) -> *const Pixel {
-        self.grid.as_ptr()
     }
 }

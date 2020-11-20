@@ -1,8 +1,9 @@
+import { getPosition } from "./../utils/getPosition";
 import { isCanvasContext } from "../types";
 import { Editor } from "../Editor";
 import { clamp } from "lodash";
-import { zoom, pan, handleWindowResize } from './interactions';
-import { flatten } from 'lodash';
+import { zoom, pan, handleWindowResize, test } from "./interactions";
+import { createGrid } from "../utils";
 
 interface CanvasOptions {
   width: number;
@@ -35,14 +36,18 @@ export class Canvas {
   pan = pan(this);
   handleWindowResize = handleWindowResize(this);
 
+  backgroundGrid: ImageData;
+
   constructor({ width, height, pixelSize }: CanvasOptions, editor: Editor) {
     this.editor = editor;
     this.width = width;
     this.height = height;
     this._pixelSize = pixelSize;
 
+    this.backgroundGrid = createGrid(this.width, this.height);
+
     const canvas = document.createElement("canvas");
-    const buffer = document.createElement('canvas');
+    const buffer = document.createElement("canvas");
     buffer.height = this.height;
     buffer.width = this.width;
 
@@ -52,11 +57,8 @@ export class Canvas {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
 
-    this.origin = this.getOrigin();
-
     const ctx = this.canvas.getContext("2d");
-    const bufferCtx = this.buffer.getContext('2d');
-
+    const bufferCtx = this.buffer.getContext("2d");
 
     if (isCanvasContext(ctx) && isCanvasContext(bufferCtx)) {
       this.ctx = ctx;
@@ -67,6 +69,7 @@ export class Canvas {
       throw new Error("Unable to get context from canvas");
     }
 
+    this.origin = this.getOrigin();
   }
 
   init() {
@@ -79,22 +82,34 @@ export class Canvas {
   }
 
   set scale(value: number) {
-    this._scale = clamp(value, 0.5, 8);
+    this._scale = clamp(value, 0.01, 8);
   }
 
   get pixelSize() {
     return this._pixelSize * this.scale;
   }
 
-  getOrigin() {
+  get trueSize() {
     return {
-      x: this.canvas.width / 2 - (this.width * this.pixelSize) / 2,
-      y: this.canvas.height / 2 - (this.height * this.pixelSize) / 2,
+      width: this.pixelSize * this.width,
+      height: this.pixelSize * this.height,
+    };
+  }
+
+  getOrigin() {
+    const canvasMidPoint = {
+      x: (this.width * this.pixelSize) / 2,
+      y: (this.width * this.pixelSize) / 2,
+    };
+
+    return {
+      x: this.canvas.width / 2 - canvasMidPoint.x,
+      y: this.canvas.height / 2 - canvasMidPoint.y,
     };
   }
 
   getPosition(index: number) {
-    return [index % this.width, Math.floor(index / this.width)];
+    return getPosition(this.width, index);
   }
 
   drawPixels() {
@@ -105,37 +120,28 @@ export class Canvas {
   }
 
   drawGrid() {
-
-    const { gridData } = this.editor;
-
-    this.bufferCtx.putImageData(gridData, 0, 0);
+    this.bufferCtx.putImageData(this.backgroundGrid, 0, 0);
     this.renderToCanvas();
   }
 
   mount() {
     this.editor.root.appendChild(this.canvas);
 
-    window.addEventListener(
-      "wheel",
-      this.zoom,
-      { passive: false }
-    );
+    window.addEventListener("wheel", this.zoom, { passive: false });
 
-    window.addEventListener(
-      "wheel",
-      this.pan,
-      { passive: false }
-    );
+    window.addEventListener("wheel", this.pan, { passive: false });
 
     window.addEventListener("resize", this.handleWindowResize);
+
+    this.canvas.addEventListener("click", test(this));
   }
 
   unmount() {
     this.editor.root.removeChild(this.canvas);
 
-    window.removeEventListener('wheel', this.zoom);
-    window.removeEventListener('wheel', this.pan);
-    window.removeEventListener('resize', this.handleWindowResize);
+    window.removeEventListener("wheel", this.zoom);
+    window.removeEventListener("wheel", this.pan);
+    window.removeEventListener("resize", this.handleWindowResize);
   }
 
   renderLoop(currentDelta: number) {
@@ -154,12 +160,15 @@ export class Canvas {
   renderToCanvas() {
     this.ctx.drawImage(
       this.buffer,
-      0, 0, this.width, this.height,
+      0,
+      0,
+      this.width,
+      this.height,
       this.origin.x,
       this.origin.y,
       this.width * this.pixelSize,
       this.height * this.pixelSize
-    )
+    );
   }
 
   render() {

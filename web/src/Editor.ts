@@ -2,7 +2,6 @@ import { PixelSpace } from "wasm-pixel-editor";
 import { memory } from "wasm-pixel-editor/wasm_pixel_editor_bg.wasm";
 import { Canvas } from "./canvas/Canvas";
 import { Tool } from "./toolbox";
-import { chunk } from "lodash";
 
 interface EditorConfig {
   pixelWidth?: number;
@@ -58,17 +57,6 @@ export class Editor {
       this.pixelHeight * this.pixelWidth * 4
     );
 
-    return new ImageData(pixels, this.pixelWidth, this.pixelHeight)
-  }
-
-  get gridData() {
-    const ptr = this.pixelSpace.grid();
-    const pixels = new Uint8ClampedArray(
-      this.memory.buffer,
-      ptr,
-      this.pixelHeight * this.pixelWidth * 4
-    );
-
-    return new ImageData(pixels, this.pixelWidth, this.pixelHeight)
+    return new ImageData(pixels, this.pixelWidth, this.pixelHeight);
   }
 }
